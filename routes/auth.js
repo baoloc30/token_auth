@@ -36,7 +36,7 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
 
     // Generate token
-    const token = jwt.sign({ id: user._id }, 'secretKey', { expiresIn: '1h' });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30s' });
 
     res.json({ token });
   } catch (err) {
@@ -50,10 +50,13 @@ function authMiddleware(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Access denied' });
 
   try {
-    const verified = jwt.verify(token, 'secretKey');
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
     req.user = verified;
     next();
-  } catch {
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expired' });
+    }
     res.status(400).json({ error: 'Invalid token' });
   }
 }
